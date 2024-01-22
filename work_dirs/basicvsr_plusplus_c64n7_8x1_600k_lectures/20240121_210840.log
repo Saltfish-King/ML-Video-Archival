@@ -1,0 +1,291 @@
+2024-01-21 21:08:40,346 - mmedit - INFO - Environment info:
+------------------------------------------------------------
+sys.platform: linux
+Python: 3.8.10 (default, May 26 2023, 14:05:08) [GCC 9.4.0]
+CUDA available: True
+GPU 0,1,2,3: NVIDIA GeForce RTX 2080 Ti
+CUDA_HOME: /usr/local/cuda
+NVCC: Cuda compilation tools, release 11.6, V11.6.124
+GCC: x86_64-linux-gnu-gcc (Ubuntu 9.4.0-1ubuntu1~20.04.1) 9.4.0
+PyTorch: 2.0.1+cu117
+PyTorch compiling details: PyTorch built with:
+  - GCC 9.3
+  - C++ Version: 201703
+  - Intel(R) oneAPI Math Kernel Library Version 2022.2-Product Build 20220804 for Intel(R) 64 architecture applications
+  - Intel(R) MKL-DNN v2.7.3 (Git Hash 6dbeffbae1f23cbbeae17adb7b5b13f1f37c080e)
+  - OpenMP 201511 (a.k.a. OpenMP 4.5)
+  - LAPACK is enabled (usually provided by MKL)
+  - NNPACK is enabled
+  - CPU capability usage: AVX2
+  - CUDA Runtime 11.7
+  - NVCC architecture flags: -gencode;arch=compute_37,code=sm_37;-gencode;arch=compute_50,code=sm_50;-gencode;arch=compute_60,code=sm_60;-gencode;arch=compute_70,code=sm_70;-gencode;arch=compute_75,code=sm_75;-gencode;arch=compute_80,code=sm_80;-gencode;arch=compute_86,code=sm_86
+  - CuDNN 8.5
+  - Magma 2.6.1
+  - Build settings: BLAS_INFO=mkl, BUILD_TYPE=Release, CUDA_VERSION=11.7, CUDNN_VERSION=8.5.0, CXX_COMPILER=/opt/rh/devtoolset-9/root/usr/bin/c++, CXX_FLAGS= -D_GLIBCXX_USE_CXX11_ABI=0 -fabi-version=11 -Wno-deprecated -fvisibility-inlines-hidden -DUSE_PTHREADPOOL -DNDEBUG -DUSE_KINETO -DLIBKINETO_NOROCTRACER -DUSE_FBGEMM -DUSE_QNNPACK -DUSE_PYTORCH_QNNPACK -DUSE_XNNPACK -DSYMBOLICATE_MOBILE_DEBUG_HANDLE -O2 -fPIC -Wall -Wextra -Werror=return-type -Werror=non-virtual-dtor -Werror=bool-operation -Wnarrowing -Wno-missing-field-initializers -Wno-type-limits -Wno-array-bounds -Wno-unknown-pragmas -Wunused-local-typedefs -Wno-unused-parameter -Wno-unused-function -Wno-unused-result -Wno-strict-overflow -Wno-strict-aliasing -Wno-error=deprecated-declarations -Wno-stringop-overflow -Wno-psabi -Wno-error=pedantic -Wno-error=redundant-decls -Wno-error=old-style-cast -fdiagnostics-color=always -faligned-new -Wno-unused-but-set-variable -Wno-maybe-uninitialized -fno-math-errno -fno-trapping-math -Werror=format -Werror=cast-function-type -Wno-stringop-overflow, LAPACK_INFO=mkl, PERF_WITH_AVX=1, PERF_WITH_AVX2=1, PERF_WITH_AVX512=1, TORCH_DISABLE_GPU_ASSERTS=ON, TORCH_VERSION=2.0.1, USE_CUDA=ON, USE_CUDNN=ON, USE_EXCEPTION_PTR=1, USE_GFLAGS=OFF, USE_GLOG=OFF, USE_MKL=ON, USE_MKLDNN=ON, USE_MPI=OFF, USE_NCCL=1, USE_NNPACK=ON, USE_OPENMP=ON, USE_ROCM=OFF, 
+
+TorchVision: 0.15.2+cu117
+OpenCV: 4.5.4
+MMCV: 1.6.0
+MMCV Compiler: GCC 9.4
+MMCV CUDA Compiler: 11.6
+MMEditing: 0.14.0+fe133db
+------------------------------------------------------------
+
+2024-01-21 21:08:40,346 - mmedit - INFO - Distributed training: True
+2024-01-21 21:08:40,347 - mmedit - INFO - mmedit Version: 0.14.0
+2024-01-21 21:08:40,347 - mmedit - INFO - Config:
+/BasicVSR_PlusPlus/configs/basicvsr_plusplus_lectures.py
+exp_name = 'basicvsr_plusplus_c64n7_8x1_600k_lectures'
+
+# model settings
+model = dict(
+    type='BasicVSR',
+    generator=dict(
+        type='BasicVSRPlusPlus',
+        mid_channels=64,
+        num_blocks=7,
+        is_low_res_input=True,
+        spynet_pretrained='https://download.openmmlab.com/mmediting/restorers/'
+        'basicvsr/spynet_20210409-c6c1bd09.pth'),
+    pixel_loss=dict(type='CharbonnierLoss', loss_weight=1.0, reduction='mean'))
+# model training and testing settings
+train_cfg = dict(fix_iter=5000)
+test_cfg = dict(metrics=['PSNR'], crop_border=0)
+
+# dataset settings
+train_dataset_type = 'SRLECMultipleGTDataset'
+val_dataset_type = 'SRLECMultipleGTDataset'
+test_dataset_type = 'SRFolderMultipleGTDataset'
+
+train_pipeline = [
+    dict(type='GenerateSegmentIndices', interval_list=[1]),
+    dict(
+        type='LoadImageFromFileList',
+        io_backend='disk',
+        key='lq',
+        channel_order='rgb'),
+    dict(
+        type='LoadImageFromFileList',
+        io_backend='disk',
+        key='gt',
+        channel_order='rgb'),
+    dict(type='RescaleToZeroOne', keys=['lq', 'gt']),
+    dict(type='PairedRandomCrop', gt_patch_size=256),
+    dict(
+        type='Flip', keys=['lq', 'gt'], flip_ratio=0.5,
+        direction='horizontal'),
+    dict(type='Flip', keys=['lq', 'gt'], flip_ratio=0.5, direction='vertical'),
+    dict(type='RandomTransposeHW', keys=['lq', 'gt'], transpose_ratio=0.5),
+    dict(type='FramesToTensor', keys=['lq', 'gt']),
+    dict(type='Collect', keys=['lq', 'gt'], meta_keys=['lq_path', 'gt_path'])
+]
+
+test_pipeline = [
+    dict(type='GenerateSegmentIndices', interval_list=[1]),
+    dict(
+        type='LoadImageFromFileList',
+        io_backend='disk',
+        key='lq',
+        channel_order='rgb'),
+    dict(
+        type='LoadImageFromFileList',
+        io_backend='disk',
+        key='gt',
+        channel_order='rgb'),
+    dict(type='RescaleToZeroOne', keys=['lq', 'gt']),
+    dict(type='FramesToTensor', keys=['lq', 'gt']),
+    dict(
+        type='Collect',
+        keys=['lq', 'gt'],
+        meta_keys=['lq_path', 'gt_path', 'key'])
+]
+
+demo_pipeline = [
+    dict(type='GenerateSegmentIndices', interval_list=[1]),
+    dict(
+        type='LoadImageFromFileList',
+        io_backend='disk',
+        key='lq',
+        channel_order='rgb'),
+    dict(type='RescaleToZeroOne', keys=['lq']),
+    dict(type='FramesToTensor', keys=['lq']),
+    dict(type='Collect', keys=['lq'], meta_keys=['lq_path', 'key'])
+]
+
+data = dict(
+    workers_per_gpu=6,
+    train_dataloader=dict(samples_per_gpu=1, drop_last=True),  # 8 gpus
+    val_dataloader=dict(samples_per_gpu=1),
+    test_dataloader=dict(samples_per_gpu=1, workers_per_gpu=1),
+
+    # train
+    train=dict(
+        type='RepeatDataset',
+        times=1000,
+        dataset=dict(
+            type=train_dataset_type,
+            lq_folder='data/I1R1/240p-1.0fps-no-upscale',
+            gt_folder='data/I1R1/1080p-1.0fps',
+            num_input_frames=20,
+            pipeline=train_pipeline,
+            scale=4,
+            val_partition='official',
+            test_mode=False)),
+    # val
+    val=dict(
+        type=val_dataset_type,
+        lq_folder='data/I1R1/240p-1.0fps-no-upscale',
+        gt_folder='data/I1R1/1080p-1.0fps',
+        num_input_frames=20,
+        pipeline=test_pipeline,
+        scale=4,
+        val_partition='official',
+        repeat=2,
+        test_mode=True),
+    # test
+    # test=dict(
+    #     type=test_dataset_type,
+    #     lq_folder='data/test/LQ',
+    #     gt_folder='data/test/GT',
+    #     pipeline=test_pipeline,
+    #     scale=1,
+    #     test_mode=True),
+)
+
+# optimizer
+optimizers = dict(
+    generator=dict(
+        type='Adam',
+        lr=1e-4,
+        betas=(0.9, 0.99),
+        paramwise_cfg=dict(custom_keys={'spynet': dict(lr_mult=0.25)})))
+
+# learning policy
+total_iters = 600000
+lr_config = dict(
+    policy='CosineRestart',
+    by_epoch=False,
+    periods=[600000],
+    restart_weights=[1],
+    min_lr=1e-7)
+
+checkpoint_config = dict(interval=5000, save_optimizer=True, by_epoch=False)
+# remove gpu_collect=True in non distributed training
+evaluation = dict(interval=5000, save_image=False, gpu_collect=True)
+log_config = dict(
+    interval=100,
+    hooks=[
+        dict(type='TextLoggerHook', by_epoch=False),
+        # dict(type='TensorboardLoggerHook'),
+    ])
+visual_config = None
+
+# runtime settings
+dist_params = dict(backend='nccl')
+log_level = 'INFO'
+work_dir = f'./work_dirs/{exp_name}'
+load_from = None
+resume_from = None
+workflow = [('train', 1)]
+find_unused_parameters = True
+
+2024-01-21 21:08:40,347 - mmedit - INFO - Set random seed to 0, deterministic: False
+2024-01-21 21:08:40,391 - mmedit - INFO - load checkpoint from http path: https://download.openmmlab.com/mmediting/restorers/basicvsr/spynet_20210409-c6c1bd09.pth
+2024-01-21 21:08:41,945 - mmedit - INFO - Start running, host: root@ab13a7576060, work_dir: /BasicVSR_PlusPlus/work_dirs/basicvsr_plusplus_c64n7_8x1_600k_lectures
+2024-01-21 21:08:41,945 - mmedit - INFO - Hooks will be executed in the following order:
+before_run:
+(VERY_HIGH   ) CosineRestartLrUpdaterHook         
+(NORMAL      ) CheckpointHook                     
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+before_train_epoch:
+(VERY_HIGH   ) CosineRestartLrUpdaterHook         
+(LOW         ) IterTimerHook                      
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+before_train_iter:
+(VERY_HIGH   ) CosineRestartLrUpdaterHook         
+(LOW         ) IterTimerHook                      
+ -------------------- 
+after_train_iter:
+(NORMAL      ) CheckpointHook                     
+(LOW         ) IterTimerHook                      
+(LOW         ) DistEvalIterHook                   
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+after_train_epoch:
+(NORMAL      ) CheckpointHook                     
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+before_val_epoch:
+(LOW         ) IterTimerHook                      
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+before_val_iter:
+(LOW         ) IterTimerHook                      
+ -------------------- 
+after_val_iter:
+(LOW         ) IterTimerHook                      
+ -------------------- 
+after_val_epoch:
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+after_run:
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+2024-01-21 21:08:41,945 - mmedit - INFO - workflow: [('train', 1)], max: 600000 iters
+2024-01-21 21:08:41,945 - mmedit - INFO - Checkpoints will be saved to /BasicVSR_PlusPlus/work_dirs/basicvsr_plusplus_c64n7_8x1_600k_lectures by HardDiskBackend.
+2024-01-21 21:09:54,527 - mmedit - INFO - Iter [100/600000]	lr_generator: 2.500e-05, eta: 5 days, 0:06:49, time: 0.721, data_time: 0.010, memory: 4485, loss_pix: 0.0134, loss: 0.0134
+2024-01-21 21:11:04,018 - mmedit - INFO - Iter [200/600000]	lr_generator: 2.500e-05, eta: 4 days, 21:56:08, time: 0.695, data_time: 0.003, memory: 4485, loss_pix: 0.0118, loss: 0.0118
+2024-01-21 21:12:13,794 - mmedit - INFO - Iter [300/600000]	lr_generator: 2.500e-05, eta: 4 days, 21:21:18, time: 0.698, data_time: 0.003, memory: 4485, loss_pix: 0.0124, loss: 0.0124
+2024-01-21 21:13:23,963 - mmedit - INFO - Iter [400/600000]	lr_generator: 2.500e-05, eta: 4 days, 21:13:07, time: 0.702, data_time: 0.003, memory: 4485, loss_pix: 0.0107, loss: 0.0107
+2024-01-21 21:14:32,981 - mmedit - INFO - Iter [500/600000]	lr_generator: 2.500e-05, eta: 4 days, 20:44:44, time: 0.690, data_time: 0.003, memory: 4485, loss_pix: 0.0100, loss: 0.0100
+2024-01-21 21:15:42,848 - mmedit - INFO - Iter [600/600000]	lr_generator: 2.500e-05, eta: 4 days, 20:39:34, time: 0.699, data_time: 0.003, memory: 4485, loss_pix: 0.0096, loss: 0.0096
+2024-01-21 21:16:52,391 - mmedit - INFO - Iter [700/600000]	lr_generator: 2.500e-05, eta: 4 days, 20:30:56, time: 0.695, data_time: 0.003, memory: 4485, loss_pix: 0.0089, loss: 0.0089
+2024-01-21 21:18:01,819 - mmedit - INFO - Iter [800/600000]	lr_generator: 2.500e-05, eta: 4 days, 20:22:45, time: 0.694, data_time: 0.003, memory: 4485, loss_pix: 0.0096, loss: 0.0096
+2024-01-21 21:19:11,409 - mmedit - INFO - Iter [900/600000]	lr_generator: 2.500e-05, eta: 4 days, 20:17:54, time: 0.696, data_time: 0.003, memory: 4485, loss_pix: 0.0101, loss: 0.0101
+2024-01-21 21:20:20,743 - mmedit - INFO - Exp name: basicvsr_plusplus_c64n7_8x1_600k_lectures
+2024-01-21 21:20:20,743 - mmedit - INFO - Iter [1000/600000]	lr_generator: 2.500e-05, eta: 4 days, 20:11:14, time: 0.693, data_time: 0.003, memory: 4485, loss_pix: 0.0092, loss: 0.0092
+2024-01-21 21:21:29,798 - mmedit - INFO - Iter [1100/600000]	lr_generator: 2.500e-05, eta: 4 days, 20:03:03, time: 0.691, data_time: 0.003, memory: 4485, loss_pix: 0.0091, loss: 0.0091
+2024-01-21 21:22:39,068 - mmedit - INFO - Iter [1200/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:57:49, time: 0.693, data_time: 0.003, memory: 4485, loss_pix: 0.0094, loss: 0.0094
+2024-01-21 21:23:48,554 - mmedit - INFO - Iter [1300/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:54:52, time: 0.695, data_time: 0.003, memory: 4485, loss_pix: 0.0081, loss: 0.0081
+2024-01-21 21:24:58,283 - mmedit - INFO - Iter [1400/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:53:55, time: 0.697, data_time: 0.003, memory: 4485, loss_pix: 0.0093, loss: 0.0093
+2024-01-21 21:26:08,653 - mmedit - INFO - Iter [1500/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:57:11, time: 0.704, data_time: 0.003, memory: 4485, loss_pix: 0.0087, loss: 0.0087
+2024-01-21 21:27:18,620 - mmedit - INFO - Iter [1600/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:57:24, time: 0.700, data_time: 0.003, memory: 4485, loss_pix: 0.0086, loss: 0.0086
+2024-01-21 21:28:28,614 - mmedit - INFO - Iter [1700/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:57:36, time: 0.700, data_time: 0.003, memory: 4485, loss_pix: 0.0089, loss: 0.0089
+2024-01-21 21:29:38,234 - mmedit - INFO - Iter [1800/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:55:35, time: 0.696, data_time: 0.003, memory: 4485, loss_pix: 0.0091, loss: 0.0091
+2024-01-21 21:30:47,812 - mmedit - INFO - Iter [1900/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:53:26, time: 0.696, data_time: 0.003, memory: 4485, loss_pix: 0.0084, loss: 0.0084
+2024-01-21 21:31:57,036 - mmedit - INFO - Exp name: basicvsr_plusplus_c64n7_8x1_600k_lectures
+2024-01-21 21:31:57,036 - mmedit - INFO - Iter [2000/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:49:38, time: 0.692, data_time: 0.003, memory: 4485, loss_pix: 0.0087, loss: 0.0087
+2024-01-21 21:33:06,425 - mmedit - INFO - Iter [2100/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:46:51, time: 0.694, data_time: 0.003, memory: 4485, loss_pix: 0.0085, loss: 0.0085
+2024-01-21 21:34:16,299 - mmedit - INFO - Iter [2200/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:46:25, time: 0.699, data_time: 0.003, memory: 4485, loss_pix: 0.0087, loss: 0.0087
+2024-01-21 21:35:26,586 - mmedit - INFO - Iter [2300/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:47:42, time: 0.703, data_time: 0.003, memory: 4485, loss_pix: 0.0086, loss: 0.0086
+2024-01-21 21:36:36,318 - mmedit - INFO - Iter [2400/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:46:29, time: 0.697, data_time: 0.003, memory: 4485, loss_pix: 0.0080, loss: 0.0080
+2024-01-21 21:37:45,957 - mmedit - INFO - Iter [2500/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:44:55, time: 0.696, data_time: 0.003, memory: 4485, loss_pix: 0.0082, loss: 0.0082
+2024-01-21 21:38:54,984 - mmedit - INFO - Iter [2600/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:41:01, time: 0.690, data_time: 0.003, memory: 4485, loss_pix: 0.0085, loss: 0.0085
+2024-01-21 21:40:04,748 - mmedit - INFO - Iter [2700/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:40:02, time: 0.698, data_time: 0.003, memory: 4485, loss_pix: 0.0090, loss: 0.0090
+2024-01-21 21:41:14,551 - mmedit - INFO - Iter [2800/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:39:11, time: 0.698, data_time: 0.003, memory: 4485, loss_pix: 0.0081, loss: 0.0081
+2024-01-21 21:42:23,876 - mmedit - INFO - Iter [2900/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:36:41, time: 0.693, data_time: 0.003, memory: 4485, loss_pix: 0.0083, loss: 0.0083
+2024-01-21 21:43:33,292 - mmedit - INFO - Exp name: basicvsr_plusplus_c64n7_8x1_600k_lectures
+2024-01-21 21:43:33,293 - mmedit - INFO - Iter [3000/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:34:34, time: 0.694, data_time: 0.003, memory: 4485, loss_pix: 0.0079, loss: 0.0079
+2024-01-21 21:44:42,897 - mmedit - INFO - Iter [3100/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:33:07, time: 0.696, data_time: 0.003, memory: 4485, loss_pix: 0.0082, loss: 0.0082
+2024-01-21 21:45:52,864 - mmedit - INFO - Iter [3200/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:32:48, time: 0.700, data_time: 0.003, memory: 4485, loss_pix: 0.0080, loss: 0.0080
+2024-01-21 21:47:02,448 - mmedit - INFO - Iter [3300/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:31:18, time: 0.696, data_time: 0.003, memory: 4485, loss_pix: 0.0083, loss: 0.0083
+2024-01-21 21:48:12,059 - mmedit - INFO - Iter [3400/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:29:53, time: 0.696, data_time: 0.003, memory: 4485, loss_pix: 0.0087, loss: 0.0087
+2024-01-21 21:49:21,792 - mmedit - INFO - Iter [3500/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:28:50, time: 0.697, data_time: 0.003, memory: 4485, loss_pix: 0.0086, loss: 0.0086
+2024-01-21 21:50:30,937 - mmedit - INFO - Iter [3600/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:26:09, time: 0.691, data_time: 0.003, memory: 4485, loss_pix: 0.0082, loss: 0.0082
+2024-01-21 21:51:40,107 - mmedit - INFO - Iter [3700/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:23:37, time: 0.692, data_time: 0.003, memory: 4485, loss_pix: 0.0078, loss: 0.0078
+2024-01-21 21:52:50,182 - mmedit - INFO - Iter [3800/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:23:31, time: 0.701, data_time: 0.003, memory: 4485, loss_pix: 0.0081, loss: 0.0081
+2024-01-21 21:54:00,185 - mmedit - INFO - Iter [3900/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:23:11, time: 0.700, data_time: 0.003, memory: 4485, loss_pix: 0.0077, loss: 0.0077
+2024-01-21 21:55:09,091 - mmedit - INFO - Exp name: basicvsr_plusplus_c64n7_8x1_600k_lectures
+2024-01-21 21:55:09,091 - mmedit - INFO - Iter [4000/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:20:06, time: 0.689, data_time: 0.003, memory: 4485, loss_pix: 0.0083, loss: 0.0083
+2024-01-21 21:56:18,997 - mmedit - INFO - Iter [4100/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:19:31, time: 0.699, data_time: 0.003, memory: 4485, loss_pix: 0.0077, loss: 0.0077
+2024-01-21 21:57:28,542 - mmedit - INFO - Iter [4200/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:18:03, time: 0.695, data_time: 0.003, memory: 4485, loss_pix: 0.0087, loss: 0.0087
+2024-01-21 21:58:38,311 - mmedit - INFO - Iter [4300/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:17:07, time: 0.698, data_time: 0.003, memory: 4485, loss_pix: 0.0080, loss: 0.0080
+2024-01-21 21:59:47,871 - mmedit - INFO - Iter [4400/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:15:43, time: 0.696, data_time: 0.003, memory: 4485, loss_pix: 0.0081, loss: 0.0081
+2024-01-21 22:00:57,290 - mmedit - INFO - Iter [4500/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:14:00, time: 0.694, data_time: 0.003, memory: 4485, loss_pix: 0.0077, loss: 0.0077
+2024-01-21 22:02:06,334 - mmedit - INFO - Iter [4600/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:11:30, time: 0.690, data_time: 0.003, memory: 4485, loss_pix: 0.0076, loss: 0.0076
+2024-01-21 22:03:15,845 - mmedit - INFO - Iter [4700/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:10:03, time: 0.695, data_time: 0.003, memory: 4485, loss_pix: 0.0081, loss: 0.0081
+2024-01-21 22:04:25,304 - mmedit - INFO - Iter [4800/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:08:30, time: 0.695, data_time: 0.003, memory: 4485, loss_pix: 0.0080, loss: 0.0080
+2024-01-21 22:05:35,396 - mmedit - INFO - Iter [4900/600000]	lr_generator: 2.500e-05, eta: 4 days, 19:08:15, time: 0.701, data_time: 0.003, memory: 4485, loss_pix: 0.0076, loss: 0.0076
+2024-01-21 22:06:45,078 - mmedit - INFO - Saving checkpoint at 5000 iterations
