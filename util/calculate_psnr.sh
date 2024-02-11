@@ -43,7 +43,7 @@ calculate_psnr() {
     # Calculate PSNR
     psnr=$(compare -metric PSNR "$file1" "$file2" /dev/null 2>&1)
 
-    echo "PSNR for $2: $psnr dB"
+    echo "$psnr"
     
     # Update total, max, and min PSNR values
     total_psnr=$(awk "BEGIN {print $total_psnr + $psnr}")
