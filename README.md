@@ -1,13 +1,13 @@
 # ML-Video-Archival
 This is the code used in the project of using ML methods for video archival, which is largelybased on the video super-resolution model **BasicVSR++**.
 
-It is, in the end, given up because **Professor Han's group**, whose researches made up the main basic of this project's idea, concluded it is largely not worthy to use machine leanring based super-resolution for makeing video archival more efficient. '[This](https://www.hotstorage.org/2023/papers/hotstorage23-final11.pdf)' is their paper indicating this conclusion. 
+It is, in the end, given up because **Professor Han's group**, whose researches made up the main basic of this project's idea, concluded it is largely not worthy to use machine leanring based super-resolution for makeing video archival more efficient. [This](https://www.hotstorage.org/2023/papers/hotstorage23-final11.pdf) is their paper indicating this conclusion. 
 
 Basically, there is a huge amount of computing overhead, even excluded training cost. The PPT presetation slides introducing their work could be found in this repo.
 
 Certainly, there are still something to explore, but **if there is no use case that would archive videos with a very long access interval**, it would keep being hard and unworthy to conduct such explorations.
 
-The research log used during the research could be found '[here]((https://docs.google.com/document/d/19Pl02DdVmcLLtj90O7h1KFWCRrP22PThdtco5lyxaiA/edit))'
+The research log used during the research could be found [here](https://docs.google.com/document/d/19Pl02DdVmcLLtj90O7h1KFWCRrP22PThdtco5lyxaiA/edit)
 
 ---
 
