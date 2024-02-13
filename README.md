@@ -5,7 +5,7 @@ It is, in the end, given up because **Professor Han's group**, whose researches 
 
 Basically, there is a huge amount of computing overhead, even excluded training cost. The PPT presetation slides introducing their work could be found in this repo.
 
-Certainly, there are still something to explore, but **if there is no use case that would archive videos with a very long access interval**, it would keep being hard and unworthy to conduct such explorations.
+Certainly, there are still somethings to explore, such as how to more efficiently utilize the nature of GoP, the possibility to use one single content-aware model for mutiple video groups, but **if there is no use case that would archive videos with a very long access interval**, it would keep being hard and unworthy to conduct such explorations.
 
 The research log used during the research could be found [here](https://docs.google.com/document/d/19Pl02DdVmcLLtj90O7h1KFWCRrP22PThdtco5lyxaiA/edit)
 
